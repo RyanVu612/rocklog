@@ -1,32 +1,12 @@
-//
-//  RocklogApp.swift
-//  Rocklog
-//
-//  Created by Ryan Vu on 2/12/26.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
-struct RocklogApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
+struct RockLogApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(for: [ClimbLog.self, MediaItem.self])
     }
 }

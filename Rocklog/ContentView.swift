@@ -1,61 +1,98 @@
-//
-//  ContentView.swift
-//  Rocklog
-//
-//  Created by Ryan Vu on 2/12/26.
-//
-
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @State private var showingNewLog = false
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationView {
+            LogListView()
+                .navigationTitle("Rock Log")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingNewLog = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+        .sheet(isPresented: $showingNewLog) {
+            NavigationStack {
+                LogClimbView()
             }
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct LogListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \ClimbLog.date, order: .reverse) private var logs: [ClimbLog]
+
+    var body: some View {
+        List {
+            if logs.isEmpty {
+                ContentUnavailableView (
+                    Text("No climbs logged yet.")
+                    systemImage: "figure.climbing",
+                    description: Text("Tap the + button to log your first climb.")
+                )
+            } else {
+                ForEach(logs) { log in
+                    NavigationLink {
+                        LogDetailView(log: log)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text(log.discipline.rawValue.capitalized)
+                                    .font(.headline)
+                                Spacer()
+                                Text(log.date, format: .dateTime.month().day().year())
+                                    .foregroundStyle(.secondary)
+                                    .font(.subheadline)
+                            }
+
+                            HStack(spacing: 10) {
+                                Text(displayGrade(log))
+                                    .font(.subheadline)
+
+                                StarRow(rating: .constant(log.rating), isInteractive: false)
+                            }
+
+                            if !log.notes.trimmingCharacters(in: .whitespacesAndNewLines).isEmpty {
+                                Text(log.notes)
+                                    .lineLimit(1)
+                                    .foregroundStyle(.secondary)
+                                    .font(.subheadline)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+                .onDelete { indexSet in
+                    for i in indexSet {
+                        modelContext.delete(logs[i])
+                    }
+            }
+        }
+    }
+
+    private func displayGrade(_ log: Climblog) -> String {
+        let g = log.grade.trimmingCharacters(in: .whitespacesAndNewlines)
+        if g.isEmpty { return "No Grade"}
+        return "\(log.gradeSystemLabel) \(g)"
+    }
+}
+
+private extension ClimbLog {
+    var gradeSystemLabel: String {
+        switch gradeSystem {
+        case .vScale: return "V"
+        case .font: return "Font"
+        case .yds: return "YDS"
+        case .french: return "French"
+        case .uiAA: return "UIAA"
+        }
+    }
 }
