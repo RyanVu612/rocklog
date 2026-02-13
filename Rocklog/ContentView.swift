@@ -39,7 +39,7 @@ struct LogListView: View {
                     description: Text("Tap the + button to log your first climb.")
                 )
             } else {
-                ForEach(logs) { log in
+                ForEach(logs, id: \.persistentModelID) { log in
                     NavigationLink {
                         LogDetailView(log: log)
                     } label: {
@@ -60,7 +60,7 @@ struct LogListView: View {
                                 StarRow(rating: .constant(log.rating), isInteractive: false)
                             }
 
-                            if !log.notes.trimmingCharacters(in: .whitespacesAndNewLines).isEmpty {
+                            if !log.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                                 Text(log.notes)
                                     .lineLimit(1)
                                     .foregroundStyle(.secondary)

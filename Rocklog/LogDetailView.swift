@@ -64,7 +64,7 @@ struct LogDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Media").font(.headline)
 
-            ForEach(log.media) { item in
+            ForEach(log.media, id: \.id) { item in
                 if item.type == .photo {
                     if let img = UIImage(contentsOfFile: item.filePath) {
                         Image(uiImage: img)

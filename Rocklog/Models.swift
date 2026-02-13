@@ -23,14 +23,22 @@ enum MediaType: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class MediaItem {
+    var id: UUID = UUID()
+
     var typeRaw: String
     var filePath: String
     var createdAt: Date
 
     init(type: MediaType, filePath: String, createdAt: Date = .now) {
+        self.id = UUID()
         self.typeRaw = type.rawValue
         self.filePath = filePath
         self.createdAt = createdAt
+    }
+
+    var type: MediaType {
+        get { MediaType(rawValue: typeRaw) ?? .photo }
+        set { typeRaw = newValue.rawValue }
     }
 }
 
