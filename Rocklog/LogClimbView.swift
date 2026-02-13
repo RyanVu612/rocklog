@@ -8,7 +8,7 @@ struct LogClimbView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var date = Date()
-    @State private var discipline: ClimbType = .boulder
+    @State private var discipline: ClimbDiscipline = .boulder
     @State private var gradeSystem: GradeSystem = .vScale
     @State private var grade = ""
     @State private var rating = 0
@@ -16,7 +16,7 @@ struct LogClimbView: View {
     @State private var notes = ""
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var selectedVideos: [PhotosPickerItem] = []
+    @State private var selectedVideo: PhotosPickerItem? = nil
     @State private var isSavingMedia = false
     @State private var mediaError: String? = nil
 
@@ -67,11 +67,10 @@ struct LogClimbView: View {
                 }
                 
                 PhotosPicker(
-                    selection: $selectedVideos,
-                    maxSelectionCount: 5,
+                    selection: $selectedVideo,
                     matching: .videos
                 ) {
-                    Label("Add videos", systemImage: "video.badge.plus")
+                    Label("Add videos", systemImage: "video")
                 }
 
                 if let mediaError {
@@ -99,8 +98,8 @@ struct LogClimbView: View {
                 Button("Save") {
                     Task { await saveLog() }
                 }
+                .disabled(isSavingMedia)
             }
-            .disabled(isSavingMedia)
         }
     }
 
@@ -138,16 +137,13 @@ struct LogClimbView: View {
                 }
             }
 
-            // Save videos
-            for item in selectedVideos {
-                if let videoItem = selectedVideo, let url = try await videoItem.loadTransferable(type: URL.self) {
-                    let data = try Data(contentsOf: url)
-                    let path = try MediaStorage.save(data: data, preferredExtension: "mov")
-                    log.media.append(MediaItem(type: .video, filePath: path))
-                }
-                modelContext.insert(log)
-                try modelContext.save()
-                dismiss()
+            // Save video
+            if let videoItem = selectedVideo,
+               let url = try await videoItem.loadTransferable(type: URL.self) {
+
+                let data = try Data(contentsOf: url)
+                let path = try MediaStorage.save(data: data, preferredExtension: "mov")
+                log.media.append(MediaItem(type: .video, filePath: path))
             }
         } catch {
             mediaError = "Failed to save media: \(error.localizedDescription)"

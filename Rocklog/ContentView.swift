@@ -34,7 +34,7 @@ struct LogListView: View {
         List {
             if logs.isEmpty {
                 ContentUnavailableView (
-                    Text("No climbs logged yet.")
+                    "No climbs logged yet.",
                     systemImage: "figure.climbing",
                     description: Text("Tap the + button to log your first climb.")
                 )
@@ -74,11 +74,12 @@ struct LogListView: View {
                     for i in indexSet {
                         modelContext.delete(logs[i])
                     }
+                }
             }
         }
     }
 
-    private func displayGrade(_ log: Climblog) -> String {
+    private func displayGrade(_ log: ClimbLog) -> String {
         let g = log.grade.trimmingCharacters(in: .whitespacesAndNewlines)
         if g.isEmpty { return "No Grade"}
         return "\(log.gradeSystemLabel) \(g)"

@@ -50,7 +50,7 @@ final class ClimbLog {
 
     init(
         date: Date = .now,
-        discipline: ClimbType,
+        discipline: ClimbDiscipline,
         gradeSystem: GradeSystem,
         grade: String,
         rating: Int,
@@ -66,8 +66,8 @@ final class ClimbLog {
         self.notes = notes
     }
 
-    var discipline: ClimbType {
-        get { ClimbType(rawValue: disciplineRaw) ?? .sport }
+    var discipline: ClimbDiscipline {
+        get { ClimbDiscipline(rawValue: disciplineRaw) ?? .sport }
         set { disciplineRaw = newValue.rawValue }
     }
 
