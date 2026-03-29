@@ -5,18 +5,31 @@ struct ContentView: View {
     @State private var showingNewLog = false
 
     var body: some View {
-        NavigationView {
-            LogListView()
-                .navigationTitle("Rock Log")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button {
-                            showingNewLog = true
-                        } label: {
-                            Image(systemName: "plus")
+        TabView {
+            NavigationStack {
+                LogListView()
+                    .navigationTitle("Rock Log")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                showingNewLog = true
+                            } label: {
+                                Image(systemName: "plus")
+                            }
                         }
                     }
-                }
+            }
+            .tabItem {
+                Label("Logs", systemImage: "list.bullet")
+            }
+
+            NavigationStack {
+                InsightsView()
+                    .navigationTitle("Insights")
+            }
+            .tabItem {
+                Label("Insights", systemImage: "chart.bar.xaxis")
+            }
         }
         .sheet(isPresented: $showingNewLog) {
             NavigationStack {
@@ -28,72 +41,190 @@ struct ContentView: View {
 
 struct LogListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \ClimbLog.date, order: .reverse) private var logs: [ClimbLog]
+    @Query private var logs: [ClimbLog]
+
+    @State private var searchText = ""
+    @State private var selectedDiscipline: ClimbDiscipline? = nil
+    @State private var selectedOutcome: Outcome? = nil
+    @State private var sortOption: LogSortOption = .newestFirst
+    @State private var editingLog: ClimbLog? = nil
+
+    private var filteredLogs: [ClimbLog] {
+        ClimbAnalytics.filtered(
+            logs: logs,
+            query: searchText,
+            discipline: selectedDiscipline,
+            outcome: selectedOutcome,
+            sort: sortOption
+        )
+    }
 
     var body: some View {
         List {
-            if logs.isEmpty {
-                ContentUnavailableView (
-                    "No climbs logged yet.",
+            filtersSection
+
+            if filteredLogs.isEmpty {
+                ContentUnavailableView(
+                    "No climbs match your filters.",
                     systemImage: "figure.climbing",
-                    description: Text("Tap the + button to log your first climb.")
+                    description: Text("Adjust filters or log your next climb.")
                 )
             } else {
-                ForEach(logs, id: \.persistentModelID) { log in
+                ForEach(filteredLogs, id: \.persistentModelID) { log in
                     NavigationLink {
                         LogDetailView(log: log)
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(log.discipline.rawValue.capitalized)
-                                    .font(.headline)
-                                Spacer()
-                                Text(log.date, format: .dateTime.month().day().year())
-                                    .foregroundStyle(.secondary)
-                                    .font(.subheadline)
-                            }
-
-                            HStack(spacing: 10) {
-                                Text(displayGrade(log))
-                                    .font(.subheadline)
-
-                                StarRow(rating: .constant(log.rating), isInteractive: false)
-                            }
-
-                            if !log.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                Text(log.notes)
-                                    .lineLimit(1)
-                                    .foregroundStyle(.secondary)
-                                    .font(.subheadline)
-                            }
+                        LogRowView(log: log)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deleteLog(log)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
-                        .padding(.vertical, 4)
+
+                        Button {
+                            editingLog = log
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .tint(.blue)
                     }
                 }
-                .onDelete { indexSet in
-                    for i in indexSet {
-                        modelContext.delete(logs[i])
-                    }
+            }
+        }
+        .searchable(text: $searchText, prompt: "Search grade, notes, discipline")
+        .sheet(
+            isPresented: Binding(
+                get: { editingLog != nil },
+                set: { isPresented in
+                    if !isPresented { editingLog = nil }
+                }
+            )
+        ) {
+            if let log = editingLog {
+                NavigationStack {
+                    LogClimbView(logToEdit: log)
                 }
             }
         }
     }
 
-    private func displayGrade(_ log: ClimbLog) -> String {
-        let g = log.grade.trimmingCharacters(in: .whitespacesAndNewlines)
-        if g.isEmpty { return "No Grade"}
-        return "\(log.gradeSystemLabel) \(g)"
+    private var filtersSection: some View {
+        Section("Filters") {
+            Picker("Sort", selection: $sortOption) {
+                ForEach(LogSortOption.allCases) { option in
+                    Text(option.title).tag(option)
+                }
+            }
+
+            Picker("Discipline", selection: $selectedDiscipline) {
+                Text("All").tag(ClimbDiscipline?.none)
+                ForEach(ClimbDiscipline.allCases) { discipline in
+                    Text(discipline.title).tag(ClimbDiscipline?.some(discipline))
+                }
+            }
+
+            Picker("Outcome", selection: $selectedOutcome) {
+                Text("All").tag(Outcome?.none)
+                ForEach(Outcome.allCases) { outcome in
+                    Text(outcome.title).tag(Outcome?.some(outcome))
+                }
+            }
+        }
+    }
+
+    private func deleteLog(_ log: ClimbLog) {
+        for item in log.media {
+            MediaStorage.deleteFile(atPath: item.filePath)
+        }
+        modelContext.delete(log)
+        try? modelContext.save()
     }
 }
 
-private extension ClimbLog {
-    var gradeSystemLabel: String {
-        switch gradeSystem {
-        case .vScale: return "V"
-        case .font: return "Font"
-        case .yds: return "YDS"
-        case .french: return "French"
-        case .uiAA: return "UIAA"
+private struct LogRowView: View {
+    let log: ClimbLog
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(log.discipline.title)
+                    .font(.headline)
+                Spacer()
+                Text(log.date, format: .dateTime.month().day().year())
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            }
+
+            HStack(spacing: 10) {
+                Text(log.formattedGrade)
+                    .font(.subheadline)
+
+                StarRow(rating: .constant(log.rating), isInteractive: false)
+            }
+
+            Text(log.outcome.title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if !log.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(log.notes)
+                    .lineLimit(1)
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            }
         }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct InsightsView: View {
+    @Query private var logs: [ClimbLog]
+
+    private var summary: ClimbSummaryStats {
+        ClimbAnalytics.summary(for: logs)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                if logs.isEmpty {
+                    ContentUnavailableView(
+                        "No insights yet",
+                        systemImage: "chart.bar.xaxis",
+                        description: Text("Start logging climbs to see your trends.")
+                    )
+                } else {
+                    statCard(title: "Total Logs", value: "\(summary.totalLogs)", systemImage: "number.square")
+                    statCard(title: "Sends", value: "\(summary.sends)", systemImage: "checkmark.circle")
+                    statCard(title: "Flashes", value: "\(summary.flashes)", systemImage: "bolt")
+                    statCard(
+                        title: "Average Rating",
+                        value: String(format: "%.1f / 5", summary.averageRating),
+                        systemImage: "star"
+                    )
+
+                    if let topDiscipline = summary.topDiscipline {
+                        statCard(title: "Top Discipline", value: topDiscipline.title, systemImage: "figure.climbing")
+                    }
+                }
+            }
+            .padding()
+        }
+    }
+
+    private func statCard(title: String, value: String, systemImage: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.title2.bold())
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

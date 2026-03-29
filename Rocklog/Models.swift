@@ -4,16 +4,68 @@ import SwiftData
 enum ClimbDiscipline: String, Codable, CaseIterable, Identifiable {
     case boulder, sport, trad, topRope
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .boulder:
+            return "Boulder"
+        case .sport:
+            return "Sport"
+        case .trad:
+            return "Trad"
+        case .topRope:
+            return "Top Rope"
+        }
+    }
 }
 
 enum GradeSystem: String, Codable, CaseIterable, Identifiable {
     case vScale, font, yds, french, uiAA
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .vScale:
+            return "V-Scale"
+        case .font:
+            return "Font"
+        case .yds:
+            return "YDS"
+        case .french:
+            return "French"
+        case .uiAA:
+            return "UIAA"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .vScale:
+            return "V"
+        case .font:
+            return "Font"
+        case .yds:
+            return "YDS"
+        case .french:
+            return "French"
+        case .uiAA:
+            return "UIAA"
+        }
+    }
 }
 
 enum Outcome: String, Codable, CaseIterable, Identifiable {
     case send, flash, redpoint, onSight, attempt, project
     var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .onSight:
+            return "Onsight"
+        default:
+            return rawValue.capitalized
+        }
+    }
 }
 
 enum MediaType: String, Codable, CaseIterable, Identifiable {
@@ -87,5 +139,14 @@ final class ClimbLog {
     var outcome: Outcome {
         get { Outcome(rawValue: outcomeRaw) ?? .attempt }
         set { outcomeRaw = newValue.rawValue }
+    }
+
+    var sanitizedGrade: String {
+        grade.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var formattedGrade: String {
+        guard !sanitizedGrade.isEmpty else { return "No grade" }
+        return "\(gradeSystem.shortLabel) \(sanitizedGrade)"
     }
 }

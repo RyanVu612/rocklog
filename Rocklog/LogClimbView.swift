@@ -1,11 +1,12 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
-import UniformTypeIdentifiers
 
 struct LogClimbView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+
+    private let logToEdit: ClimbLog?
 
     @State private var date = Date()
     @State private var discipline: ClimbDiscipline = .boulder
@@ -17,8 +18,17 @@ struct LogClimbView: View {
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var selectedVideo: PhotosPickerItem? = nil
-    @State private var isSavingMedia = false
-    @State private var mediaError: String? = nil
+    @State private var mediaIDsToDelete: Set<UUID> = []
+
+    @State private var isSaving = false
+    @State private var errorMessage: String? = nil
+    @State private var didLoadInitialValues = false
+
+    init(logToEdit: ClimbLog? = nil) {
+        self.logToEdit = logToEdit
+    }
+
+    private var isEditing: Bool { logToEdit != nil }
 
     var body: some View {
         Form {
@@ -27,13 +37,13 @@ struct LogClimbView: View {
 
                 Picker("Discipline", selection: $discipline) {
                     ForEach(ClimbDiscipline.allCases) { d in
-                        Text(d.rawValue.capitalized).tag(d)
+                        Text(d.title).tag(d)
                     }
                 }
 
                 Picker("Grade System", selection: $gradeSystem) {
                     ForEach(GradeSystem.allCases) { s in
-                        Text(label(for: s)).tag(s)
+                        Text(s.title).tag(s)
                     }
                 }
 
@@ -47,7 +57,7 @@ struct LogClimbView: View {
 
                 Picker("Outcome", selection: $outcome) {
                     ForEach(Outcome.allCases) { o in
-                        Text(o.rawValue.capitalized).tag(o)
+                        Text(o.title).tag(o)
                     }
                 }
             }
@@ -57,7 +67,21 @@ struct LogClimbView: View {
                     .frame(minHeight: 100)
             }
 
-            Section("Media") {
+            if let logToEdit, !logToEdit.media.isEmpty {
+                Section("Current Media") {
+                    ForEach(logToEdit.media.filter { !mediaIDsToDelete.contains($0.id) }, id: \.id) { item in
+                        HStack {
+                            Label(item.type == .photo ? "Photo" : "Video", systemImage: item.type == .photo ? "photo" : "video")
+                            Spacer()
+                            Button("Remove", role: .destructive) {
+                                markMediaForDeletion(item)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Section("Add Media") {
                 PhotosPicker(
                     selection: $selectedPhotos,
                     maxSelectionCount: 5,
@@ -65,88 +89,131 @@ struct LogClimbView: View {
                 ) {
                     Label("Add photos", systemImage: "photo.on.rectangle")
                 }
-                
+
                 PhotosPicker(
                     selection: $selectedVideo,
                     matching: .videos
                 ) {
-                    Label("Add videos", systemImage: "video")
+                    Label("Add a video", systemImage: "video")
                 }
 
-                if let mediaError {
-                    Text(mediaError)
+                if !mediaIDsToDelete.isEmpty {
+                    Text("\(mediaIDsToDelete.count) media item(s) will be deleted when you save.")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                }
+            }
+
+            if let errorMessage {
+                Section {
+                    Text(errorMessage)
                         .foregroundStyle(.red)
                 }
             }
 
-            if isSavingMedia {
+            if isSaving {
                 Section {
                     HStack {
                         ProgressView()
-                        Text("Saving media...")
+                        Text("Saving...")
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .navigationTitle("Log Climb")
+        .navigationTitle(isEditing ? "Edit Climb" : "Log Climb")
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
+            ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") { dismiss() }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button(isEditing ? "Update" : "Save") {
                     Task { await saveLog() }
                 }
-                .disabled(isSavingMedia)
+                .disabled(isSaving)
             }
+        }
+        .onAppear {
+            loadExistingValuesIfNeeded()
         }
     }
 
-    private func label(for system: GradeSystem) -> String {
-        switch system {
-            case.vScale: return "V-Scale"
-            case .font: return "Font"
-            case .yds: return "YDS"
-            case .french: return "French"
-            case .uiAA: return "UIAA"
-        }
+    private func loadExistingValuesIfNeeded() {
+        guard !didLoadInitialValues, let log = logToEdit else { return }
+        date = log.date
+        discipline = log.discipline
+        gradeSystem = log.gradeSystem
+        grade = log.grade
+        rating = log.rating
+        outcome = log.outcome
+        notes = log.notes
+        didLoadInitialValues = true
+    }
+
+    private func markMediaForDeletion(_ item: MediaItem) {
+        mediaIDsToDelete.insert(item.id)
     }
 
     private func saveLog() async {
-        mediaError = nil
-        isSavingMedia = true
-        defer { isSavingMedia = false }
+        errorMessage = nil
+        isSaving = true
+        defer { isSaving = false }
 
-        let log = ClimbLog(
-            date: date,
-            discipline: discipline,
-            gradeSystem: gradeSystem,
-            grade: grade,
-            rating: rating,
-            outcome: outcome,
-            notes: notes
-        )
+        let targetLog: ClimbLog
+        if let logToEdit {
+            targetLog = logToEdit
+        } else {
+            targetLog = ClimbLog(
+                date: date,
+                discipline: discipline,
+                gradeSystem: gradeSystem,
+                grade: grade,
+                rating: rating,
+                outcome: outcome,
+                notes: notes
+            )
+        }
+
+        targetLog.date = date
+        targetLog.discipline = discipline
+        targetLog.gradeSystem = gradeSystem
+        targetLog.grade = grade
+        targetLog.rating = min(max(rating, 0), 5)
+        targetLog.outcome = outcome
+        targetLog.notes = notes
 
         do {
-            // Save photos
             for item in selectedPhotos {
                 if let data = try await item.loadTransferable(type: Data.self) {
                     let path = try MediaStorage.save(data: data, preferredExtension: "jpg")
-                    log.media.append(MediaItem(type: .photo, filePath: path))
+                    targetLog.media.append(MediaItem(type: .photo, filePath: path))
                 }
             }
 
-            // Save video
             if let videoItem = selectedVideo,
                let url = try await videoItem.loadTransferable(type: URL.self) {
-
                 let data = try Data(contentsOf: url)
                 let path = try MediaStorage.save(data: data, preferredExtension: "mov")
-                log.media.append(MediaItem(type: .video, filePath: path))
+                targetLog.media.append(MediaItem(type: .video, filePath: path))
             }
+
+            if logToEdit == nil {
+                modelContext.insert(targetLog)
+            }
+
+            let deletedItems = targetLog.media.filter { mediaIDsToDelete.contains($0.id) }
+            targetLog.media.removeAll { mediaIDsToDelete.contains($0.id) }
+
+            try modelContext.save()
+
+            for deletedItem in deletedItems {
+                MediaStorage.deleteFile(atPath: deletedItem.filePath)
+            }
+            mediaIDsToDelete.removeAll()
+
+            dismiss()
         } catch {
-            mediaError = "Failed to save media: \(error.localizedDescription)"
+            errorMessage = "Failed to save climb: \(error.localizedDescription)"
         }
     }
 }

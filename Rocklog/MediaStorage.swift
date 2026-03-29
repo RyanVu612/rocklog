@@ -17,4 +17,9 @@ enum MediaStorage {
         try data.write(to: url, options: .atomic)
         return url.path
     }
+
+    static func deleteFile(atPath path: String) {
+        guard FileManager.default.fileExists(atPath: path) else { return }
+        try? FileManager.default.removeItem(atPath: path)
+    }
 }
