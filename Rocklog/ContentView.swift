@@ -135,11 +135,16 @@ struct LogListView: View {
     }
 
     private func deleteLog(_ log: ClimbLog) {
-        for item in log.media {
-            MediaStorage.deleteFile(atPath: item.filePath)
-        }
+        let mediaPaths = log.media.map(\.filePath)
         modelContext.delete(log)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+            for path in mediaPaths {
+                MediaStorage.deleteFile(atPath: path)
+            }
+        } catch {
+            // Keep media files intact when persistence fails.
+        }
     }
 }
 
@@ -162,6 +167,12 @@ private struct LogRowView: View {
                     .font(.subheadline)
 
                 StarRow(rating: .constant(log.rating), isInteractive: false)
+            }
+
+            if let gym = log.gym {
+                Label(gym.name, systemImage: "mappin.and.ellipse")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Text(log.outcome.title)

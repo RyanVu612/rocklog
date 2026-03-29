@@ -4,6 +4,8 @@ Rocklog is an iOS SwiftUI app for tracking climbing sessions and route attempts.
 
 Current capabilities:
 - Log climbs with date/time, discipline, grade system + grade, rating, outcome, and notes.
+- Select a climbing gym location from a map and reuse saved gyms in future logs.
+- Automatically suggests the nearest saved gym on new logs when location permission is granted.
 - Attach photos and videos from Photos.
 - Browse logs with search, filter, and sort controls.
 - Edit existing logs and remove media from a log.

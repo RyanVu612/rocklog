@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import CoreLocation
 
 enum ClimbDiscipline: String, Codable, CaseIterable, Identifiable {
     case boulder, sport, trad, topRope
@@ -106,6 +107,7 @@ final class ClimbLog {
     var outcomeRaw: String
     var notes: String
 
+    @Relationship var gym: Gym?
     @Relationship(deleteRule: .cascade) var media: [MediaItem] = []
 
     init(
@@ -115,6 +117,7 @@ final class ClimbLog {
         grade: String,
         rating: Int,
         outcome: Outcome,
+        gym: Gym? = nil,
         notes: String = ""
     ) {
         self.date = date
@@ -123,6 +126,7 @@ final class ClimbLog {
         self.grade = grade
         self.rating = rating
         self.outcomeRaw = outcome.rawValue
+        self.gym = gym
         self.notes = notes
     }
 
@@ -148,5 +152,28 @@ final class ClimbLog {
     var formattedGrade: String {
         guard !sanitizedGrade.isEmpty else { return "No grade" }
         return "\(gradeSystem.shortLabel) \(sanitizedGrade)"
+    }
+}
+
+@Model
+final class Gym {
+    var id: UUID = UUID()
+    var name: String
+    var latitude: Double
+    var longitude: Double
+    var createdAt: Date
+
+    @Relationship(inverse: \ClimbLog.gym) var logs: [ClimbLog] = []
+
+    init(name: String, latitude: Double, longitude: Double, createdAt: Date = .now) {
+        self.id = UUID()
+        self.name = name
+        self.latitude = latitude
+        self.longitude = longitude
+        self.createdAt = createdAt
+    }
+
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 }

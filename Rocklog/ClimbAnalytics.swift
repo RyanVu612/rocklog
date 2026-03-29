@@ -55,7 +55,8 @@ enum ClimbAnalytics {
                 log.discipline.title.lowercased().contains(normalized) ||
                 log.formattedGrade.lowercased().contains(normalized) ||
                 log.notes.lowercased().contains(normalized) ||
-                log.outcome.title.lowercased().contains(normalized)
+                log.outcome.title.lowercased().contains(normalized) ||
+                (log.gym?.name.lowercased().contains(normalized) ?? false)
             }
         }
 

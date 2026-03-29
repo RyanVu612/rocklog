@@ -399,6 +399,7 @@
 				DEVELOPMENT_TEAM = 8VZR9L957M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Rocklog uses your location to suggest the nearest climbing gym for new logs.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Rocklog saves selected media to your climb logs";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Rocklog needs access to your photos to attach climb media.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -431,6 +432,7 @@
 				DEVELOPMENT_TEAM = 8VZR9L957M;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Rocklog uses your location to suggest the nearest climbing gym for new logs.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Rocklog saves selected media to your climb logs";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Rocklog needs access to your photos to attach climb media.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

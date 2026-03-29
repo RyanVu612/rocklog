@@ -61,6 +61,12 @@ struct LogDetailView: View {
             Text("Outcome: \(log.outcome.title)")
                 .foregroundStyle(.secondary)
                 .font(.subheadline)
+
+            if let gym = log.gym {
+                Label(gym.name, systemImage: "mappin.and.ellipse")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
+            }
         }
     }
 

@@ -7,6 +7,6 @@ struct RockLogApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: [ClimbLog.self, MediaItem.self])
+        .modelContainer(for: [ClimbLog.self, MediaItem.self, Gym.self])
     }
 }

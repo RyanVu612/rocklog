@@ -18,6 +18,14 @@ enum MediaStorage {
         return url.path
     }
 
+    static func saveFile(from sourceURL: URL, preferredExtension: String) throws -> String {
+        let dir = try mediaDirectoryURL()
+        let filename = UUID().uuidString + "." + preferredExtension
+        let destinationURL = dir.appendingPathComponent(filename)
+        try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+        return destinationURL.path
+    }
+
     static func deleteFile(atPath path: String) {
         guard FileManager.default.fileExists(atPath: path) else { return }
         try? FileManager.default.removeItem(atPath: path)

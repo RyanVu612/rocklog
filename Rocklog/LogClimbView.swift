@@ -1,10 +1,13 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
+import CoreLocation
 
 struct LogClimbView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+
+    @Query private var gyms: [Gym]
 
     private let logToEdit: ClimbLog?
 
@@ -15,10 +18,14 @@ struct LogClimbView: View {
     @State private var rating = 0
     @State private var outcome: Outcome = .attempt
     @State private var notes = ""
+    @State private var selectedGymID: UUID? = nil
 
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var selectedVideo: PhotosPickerItem? = nil
     @State private var mediaIDsToDelete: Set<UUID> = []
+    @State private var showingGymMapPicker = false
+    @StateObject private var locationProvider = LocationProvider()
+    @State private var autoSelectedGymID: UUID? = nil
 
     @State private var isSaving = false
     @State private var errorMessage: String? = nil
@@ -50,6 +57,27 @@ struct LogClimbView: View {
                 TextField("Grade (e.g. V5 / 6a / 5.12)", text: $grade)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+            }
+
+            Section("Location") {
+                Picker("Climbing Gym", selection: $selectedGymID) {
+                    Text("No gym selected").tag(UUID?.none)
+                    ForEach(sortedGyms, id: \.id) { gym in
+                        Text(gym.name).tag(UUID?.some(gym.id))
+                    }
+                }
+
+                if let autoGym = autoSelectedGym {
+                    Text("Nearest gym auto-selected: \(autoGym.name)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    showingGymMapPicker = true
+                } label: {
+                    Label("Select Gym on Map", systemImage: "map")
+                }
             }
 
             Section("Rating") {
@@ -135,7 +163,44 @@ struct LogClimbView: View {
         }
         .onAppear {
             loadExistingValuesIfNeeded()
+            if !isEditing {
+                locationProvider.requestAuthorizationAndLocation()
+                autoSelectNearestGymIfPossible()
+            }
         }
+        .onChange(of: gyms.count) { _, _ in
+            autoSelectNearestGymIfPossible()
+        }
+        .onChange(of: selectedGymID) { _, newValue in
+            if newValue != autoSelectedGymID {
+                autoSelectedGymID = nil
+            }
+        }
+        .onReceive(locationProvider.$lastLocation) { _ in
+            autoSelectNearestGymIfPossible()
+        }
+        .sheet(isPresented: $showingGymMapPicker) {
+            GymMapPickerView(existingGyms: sortedGyms) { selectedGym in
+                selectedGymID = selectedGym.id
+                autoSelectedGymID = nil
+            }
+        }
+    }
+
+    private var sortedGyms: [Gym] {
+        gyms.sorted { lhs, rhs in
+            lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    private var selectedGym: Gym? {
+        guard let selectedGymID else { return nil }
+        return gyms.first { $0.id == selectedGymID }
+    }
+
+    private var autoSelectedGym: Gym? {
+        guard let autoSelectedGymID, autoSelectedGymID == selectedGymID else { return nil }
+        return selectedGym
     }
 
     private func loadExistingValuesIfNeeded() {
@@ -147,18 +212,47 @@ struct LogClimbView: View {
         rating = log.rating
         outcome = log.outcome
         notes = log.notes
+        selectedGymID = log.gym?.id
         didLoadInitialValues = true
+    }
+
+    private func autoSelectNearestGymIfPossible() {
+        guard !isEditing else { return }
+        guard autoSelectedGymID == nil else { return }
+        guard selectedGymID == nil else { return }
+        guard let currentLocation = locationProvider.lastLocation else { return }
+        guard !gyms.isEmpty else { return }
+
+        let nearestEntry = gyms
+            .map { gym -> (gym: Gym, distance: CLLocationDistance) in
+                let distance = currentLocation.distance(
+                    from: CLLocation(latitude: gym.latitude, longitude: gym.longitude)
+                )
+                return (gym, distance)
+            }
+            .min { $0.distance < $1.distance }
+
+        guard let nearestEntry else { return }
+
+        // Avoid selecting obviously unrelated gyms if user is far from all saved locations.
+        let maxAutoSelectDistance: CLLocationDistance = 50_000
+        guard nearestEntry.distance <= maxAutoSelectDistance else { return }
+
+        selectedGymID = nearestEntry.gym.id
+        autoSelectedGymID = nearestEntry.gym.id
     }
 
     private func markMediaForDeletion(_ item: MediaItem) {
         mediaIDsToDelete.insert(item.id)
     }
 
+    @MainActor
     private func saveLog() async {
         errorMessage = nil
         isSaving = true
         defer { isSaving = false }
 
+        let isNewLog = logToEdit == nil
         let targetLog: ClimbLog
         if let logToEdit {
             targetLog = logToEdit
@@ -174,6 +268,15 @@ struct LogClimbView: View {
             )
         }
 
+        let previousDate = targetLog.date
+        let previousDiscipline = targetLog.discipline
+        let previousGradeSystem = targetLog.gradeSystem
+        let previousGrade = targetLog.grade
+        let previousRating = targetLog.rating
+        let previousOutcome = targetLog.outcome
+        let previousNotes = targetLog.notes
+        let previousGym = targetLog.gym
+
         targetLog.date = date
         targetLog.discipline = discipline
         targetLog.gradeSystem = gradeSystem
@@ -181,27 +284,37 @@ struct LogClimbView: View {
         targetLog.rating = min(max(rating, 0), 5)
         targetLog.outcome = outcome
         targetLog.notes = notes
+        targetLog.gym = selectedGym
+
+        var newlySavedMediaPaths: [String] = []
+        var newlyAddedMediaIDs: [UUID] = []
+        var deletedItems: [MediaItem] = []
 
         do {
             for item in selectedPhotos {
                 if let data = try await item.loadTransferable(type: Data.self) {
                     let path = try MediaStorage.save(data: data, preferredExtension: "jpg")
-                    targetLog.media.append(MediaItem(type: .photo, filePath: path))
+                    newlySavedMediaPaths.append(path)
+                    let media = MediaItem(type: .photo, filePath: path)
+                    newlyAddedMediaIDs.append(media.id)
+                    targetLog.media.append(media)
                 }
             }
 
             if let videoItem = selectedVideo,
                let url = try await videoItem.loadTransferable(type: URL.self) {
-                let data = try Data(contentsOf: url)
-                let path = try MediaStorage.save(data: data, preferredExtension: "mov")
-                targetLog.media.append(MediaItem(type: .video, filePath: path))
+                let path = try MediaStorage.saveFile(from: url, preferredExtension: "mov")
+                newlySavedMediaPaths.append(path)
+                let media = MediaItem(type: .video, filePath: path)
+                newlyAddedMediaIDs.append(media.id)
+                targetLog.media.append(media)
             }
 
-            if logToEdit == nil {
+            if isNewLog {
                 modelContext.insert(targetLog)
             }
 
-            let deletedItems = targetLog.media.filter { mediaIDsToDelete.contains($0.id) }
+            deletedItems = targetLog.media.filter { mediaIDsToDelete.contains($0.id) }
             targetLog.media.removeAll { mediaIDsToDelete.contains($0.id) }
 
             try modelContext.save()
@@ -213,6 +326,27 @@ struct LogClimbView: View {
 
             dismiss()
         } catch {
+            for path in newlySavedMediaPaths {
+                MediaStorage.deleteFile(atPath: path)
+            }
+            if !newlyAddedMediaIDs.isEmpty {
+                targetLog.media.removeAll { newlyAddedMediaIDs.contains($0.id) }
+            }
+            if !deletedItems.isEmpty {
+                targetLog.media.append(contentsOf: deletedItems)
+            }
+            if isNewLog {
+                modelContext.delete(targetLog)
+            } else {
+                targetLog.date = previousDate
+                targetLog.discipline = previousDiscipline
+                targetLog.gradeSystem = previousGradeSystem
+                targetLog.grade = previousGrade
+                targetLog.rating = previousRating
+                targetLog.outcome = previousOutcome
+                targetLog.notes = previousNotes
+                targetLog.gym = previousGym
+            }
             errorMessage = "Failed to save climb: \(error.localizedDescription)"
         }
     }
