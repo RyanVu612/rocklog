@@ -1,7 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { notFound, redirect } from "next/navigation";
 
-import { ClimbForm, toInitial } from "~/app/_components/climb-form";
+import { ClimbForm } from "~/app/_components/climb-form";
+import { toInitial } from "~/app/_components/climb-initial";
 import { getServerAuthSession } from "~/server/auth";
 import { api } from "~/trpc/server";
 
@@ -21,7 +22,9 @@ export default async function EditClimbPage({
 
     return (
       <div>
-        <h1 className="mb-4 text-xl font-bold">Edit climb</h1>
+        <h1 className="mb-4 font-display text-2xl uppercase tracking-tight text-ink">
+          Edit climb
+        </h1>
         <ClimbForm initial={toInitial(climb)} />
       </div>
     );

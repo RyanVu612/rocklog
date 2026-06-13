@@ -87,11 +87,11 @@ export function MediaUpload({
   const hasMedia = !!value;
 
   return (
-    <div className="rounded-md border border-slate-200 p-3">
+    <div className="rounded-md border border-edge bg-panel p-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700">
+        <span className="text-sm font-medium text-ink">
           {label}{" "}
-          <span className="font-normal text-slate-400">
+          <span className="font-normal text-muted">
             (optional, max {humanSize(maxBytes)})
           </span>
         </span>
@@ -103,7 +103,7 @@ export function MediaUpload({
               onChange(null);
               if (inputRef.current) inputRef.current.value = "";
             }}
-            className="text-xs text-red-600 hover:underline"
+            className="text-xs text-ember hover:underline"
           >
             Remove
           </button>
@@ -119,13 +119,13 @@ export function MediaUpload({
           const file = e.target.files?.[0];
           if (file) void handleFile(file);
         }}
-        className="mt-2 block w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-slate-200"
+        className="mt-2 block w-full text-sm text-muted file:mr-3 file:rounded file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink hover:file:bg-edge"
       />
 
-      {busy && <p className="mt-1 text-xs text-slate-500">Uploading…</p>}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {busy && <p className="mt-1 text-xs text-muted">Uploading…</p>}
+      {error && <p className="mt-1 text-xs text-ember">{error}</p>}
       {hasMedia && !busy && (
-        <p className="mt-1 text-xs text-green-700">
+        <p className="mt-1 text-xs text-green">
           {fileName ? `Attached: ${fileName}` : "Media attached."}
         </p>
       )}

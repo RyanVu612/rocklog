@@ -2,10 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Rocklog design tokens.
+   Fixed brand hues live in tailwind.config.ts; the semantic surface/text
+   tokens below flip between light (`:root`) and dark (`.dark`). Components
+   reference the semantic tokens (bg-surface, text-ink, …) so they restyle
+   automatically when the theme class on <html> changes. */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+
+  /* Fixed brand hues — constant in both themes (mirror of the Tailwind
+     palette in tailwind.config.ts) so plain CSS like landing.css can reference
+     the same colors. */
+  --rl-basalt: #14161d;
+  --rl-basalt-2: #1c1f29;
+  --rl-line: #2a2e3b;
+  --rl-chalk: #efebe0;
+  --rl-chalk-dim: #9ca2b0;
+  --rl-teal: #29b6c7;
+  --rl-gold: #e8b23a;
+  --rl-green: #46b17b;
+  --rl-ember: #e5533b;
+  --rl-violet: #9b6cf0;
+
+  /* Semantic tokens (light) */
+  --rl-surface: #f6f4ee;
+  --rl-panel: #ffffff;
+  --rl-edge: #e3dfd4;
+  --rl-ink: #1b1e27;
+  --rl-muted: #5f6573;
+  --rl-primary: #14161d;
+  --rl-on-primary: #efebe0;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --rl-surface: #14161d;
+  --rl-panel: #1c1f29;
+  --rl-edge: #2a2e3b;
+  --rl-ink: #efebe0;
+  --rl-muted: #9ca2b0;
+  --rl-primary: #efebe0;
+  --rl-on-primary: #14161d;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-surface text-ink antialiased;
+  font-family: var(--rl-font-body), system-ui, sans-serif;
 }

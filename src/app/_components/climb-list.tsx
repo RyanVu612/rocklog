@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ClimbCard } from "~/app/_components/climb-card";
+import { btnGhost, btnPrimary, inputBase } from "~/app/_components/ui";
 import { SEND_TYPES } from "~/lib/constants";
 import { V_GRADES, formatVGrade } from "~/lib/grades";
 import { api } from "~/trpc/react";
@@ -31,12 +32,11 @@ export function ClimbList() {
   });
 
   const climbs = climbsQuery.data ?? [];
-  const selectClass =
-    "rounded-md border border-slate-300 px-2 py-1.5 text-sm";
+  const selectClass = `${inputBase} px-2 py-1.5 text-sm`;
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3">
+      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border border-edge bg-panel p-3">
         <Filter label="Gym">
           <select
             value={gymId}
@@ -133,14 +133,14 @@ export function ClimbList() {
             setSortBy("date");
             setSortDir("desc");
           }}
-          className="ml-auto rounded-md px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
+          className={`${btnGhost} ml-auto text-sm`}
         >
           Reset
         </button>
       </div>
 
       {climbsQuery.isLoading ? (
-        <p className="py-8 text-center text-slate-500">Loading climbs…</p>
+        <p className="py-8 text-center text-muted">Loading climbs…</p>
       ) : climbs.length === 0 ? (
         <EmptyState anyFilter={!!(gymId || sendType || gradeMin !== "" || gradeMax !== "")} />
       ) : (
@@ -163,7 +163,9 @@ function Filter({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-slate-500">{label}</span>
+      <span className="font-mono text-xs uppercase tracking-wide text-muted">
+        {label}
+      </span>
       {children}
     </label>
   );
@@ -171,16 +173,13 @@ function Filter({
 
 function EmptyState({ anyFilter }: { anyFilter: boolean }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white py-12 text-center">
+    <div className="rounded-lg border border-dashed border-edge bg-panel py-12 text-center">
       {anyFilter ? (
-        <p className="text-slate-500">No climbs match these filters.</p>
+        <p className="text-muted">No climbs match these filters.</p>
       ) : (
         <>
-          <p className="text-slate-600">You haven&apos;t logged any climbs yet.</p>
-          <Link
-            href="/climbs/new"
-            className="mt-3 inline-block rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-          >
+          <p className="text-ink">You haven&apos;t logged any climbs yet.</p>
+          <Link href="/climbs/new" className={`${btnPrimary} mt-3 text-sm`}>
             Log your first climb
           </Link>
         </>

@@ -14,9 +14,11 @@ export default async function FeedPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">Public feed</h1>
+      <h1 className="mb-4 font-display text-2xl uppercase tracking-tight text-ink">
+        Public feed
+      </h1>
       {climbs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-white py-12 text-center text-slate-500">
+        <div className="rounded-lg border border-dashed border-edge bg-panel py-12 text-center text-muted">
           No public climbs from other users yet.
         </div>
       ) : (

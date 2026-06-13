@@ -1,0 +1,425 @@
+/* Rocklog landing — scoped styles. All selectors prefixed `rl-` so they never
+   collide with the rest of the app's Tailwind utilities. */
+
+.rl-root {
+  /* Palette + fonts come from the shared tokens in globals.css; this component
+     only references them. Surfaces/text use the semantic tokens so the landing
+     flips with the light/dark theme like the rest of the app. */
+
+  /* Break out of the app's max-w-4xl + py-6 shell to run full-bleed. */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  margin-top: -1.5rem;
+  margin-bottom: -1.5rem;
+  overflow-x: clip;
+
+  background-color: var(--rl-surface);
+  color: var(--rl-ink);
+  font-family: var(--rl-font-body), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  /* faint chalk-dust texture so the dark field isn't flat */
+  background-image:
+    radial-gradient(60rem 40rem at 78% -10%, rgba(232, 178, 58, 0.06), transparent 70%),
+    radial-gradient(50rem 50rem at -10% 110%, rgba(41, 182, 199, 0.05), transparent 70%);
+}
+
+.rl-root *,
+.rl-root *::before,
+.rl-root *::after {
+  box-sizing: border-box;
+}
+
+.rl-wrap {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.rl-mono {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+}
+
+/* ---------- Eyebrow ---------- */
+.rl-eyebrow {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--rl-muted);
+  margin: 0;
+}
+
+/* ---------- Hero ---------- */
+.rl-hero {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+  padding: clamp(3.5rem, 9vw, 7rem) 0 clamp(3rem, 7vw, 5.5rem);
+  align-items: stretch;
+}
+
+/* the vertical grade ladder — the signature */
+.rl-ladder {
+  position: relative;
+  border-left: 2px solid var(--rl-edge);
+  padding-left: 1rem;
+  min-height: 22rem;
+  display: flex;
+  flex-direction: column-reverse; /* V0 at the bottom, read upward */
+  justify-content: space-between;
+}
+
+.rl-rung {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.rl-rung::before {
+  /* the colored "hold" sitting on the route line */
+  content: "";
+  position: absolute;
+  left: calc(-1rem - 7px);
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--rung, var(--rl-muted));
+  box-shadow: 0 0 0 4px var(--rl-surface), 0 0 14px -2px var(--rung, transparent);
+}
+
+.rl-rung-grade {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--rl-ink);
+}
+
+.rl-rung-note {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rl-muted);
+}
+
+/* chalk marker that climbs the route on load */
+.rl-marker {
+  position: absolute;
+  left: -7px;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--rl-ink);
+  box-shadow: 0 0 0 5px rgba(156, 162, 176, 0.18);
+  animation: rl-climb 2.4s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+}
+
+@keyframes rl-climb {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+  to {
+    bottom: 62%;
+    opacity: 1;
+  }
+}
+
+.rl-hero-body {
+  align-self: center;
+  max-width: 36rem;
+}
+
+.rl-title {
+  font-family: var(--rl-font-display), system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(2.9rem, 8.5vw, 6rem);
+  line-height: 0.9;
+  letter-spacing: -0.025em;
+  margin: 1.1rem 0 0;
+}
+
+.rl-title em {
+  font-style: normal;
+  color: var(--rl-gold);
+}
+
+.rl-lede {
+  font-size: clamp(1.05rem, 1.4vw, 1.22rem);
+  color: var(--rl-muted);
+  margin: 1.5rem 0 0;
+  max-width: 32rem;
+}
+
+.rl-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 2.25rem;
+}
+
+.rl-btn {
+  font-family: var(--rl-font-body), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--rl-on-primary);
+  background: var(--rl-primary);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.rl-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.35);
+}
+
+.rl-btn:focus-visible {
+  outline: 3px solid var(--rl-gold);
+  outline-offset: 3px;
+}
+
+.rl-btn .rl-arrow {
+  transition: transform 0.15s ease;
+}
+
+.rl-btn:hover .rl-arrow {
+  transform: translateX(3px);
+}
+
+/* send-type legend under the CTA */
+.rl-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rl-muted);
+}
+
+.rl-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rl-legend span::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--dot, var(--rl-muted));
+}
+
+/* ---------- Section frame ---------- */
+.rl-section {
+  border-top: 1px solid var(--rl-edge);
+  padding: clamp(3rem, 7vw, 5rem) 0;
+}
+
+.rl-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2.25rem;
+}
+
+.rl-section-title {
+  font-family: var(--rl-font-display), system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.01em;
+  margin: 0.5rem 0 0;
+}
+
+/* ---------- Send-type ladder ---------- */
+.rl-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--rl-edge);
+  border: 1px solid var(--rl-edge);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.rl-step {
+  background: var(--rl-panel);
+  padding: 1.75rem 1.5rem 2rem;
+}
+
+.rl-step-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--step, var(--rl-chalk));
+  box-shadow: 0 0 14px -1px var(--step, transparent);
+}
+
+.rl-step h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--rl-font-display), system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 1.5rem;
+  margin: 0 0 0.6rem;
+  color: var(--rl-ink);
+}
+
+.rl-step p {
+  margin: 0;
+  color: var(--rl-muted);
+  font-size: 0.95rem;
+}
+
+/* ---------- Sample logged climbs ---------- */
+.rl-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+.rl-card {
+  background: var(--rl-panel);
+  border: 1px solid var(--rl-edge);
+  border-radius: 0.75rem;
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.rl-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rl-grade {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 1.6rem;
+  color: var(--rl-ink);
+  letter-spacing: -0.02em;
+}
+
+.rl-chip {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.4rem;
+  color: var(--rl-basalt);
+  background: var(--chip, var(--rl-chalk));
+}
+
+.rl-card-gym {
+  font-family: var(--rl-font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rl-muted);
+}
+
+.rl-card-note {
+  margin: 0;
+  color: var(--rl-ink);
+  font-size: 0.95rem;
+}
+
+/* ---------- Footer ---------- */
+.rl-footer {
+  border-top: 1px solid var(--rl-edge);
+  padding: clamp(2.5rem, 6vw, 4rem) 0 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.rl-foot-word {
+  font-family: var(--rl-font-display), system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+}
+
+.rl-foot-note {
+  color: var(--rl-muted);
+  font-size: 0.9rem;
+  max-width: 22rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .rl-hero {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .rl-ladder {
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-left: none;
+    border-bottom: 2px solid var(--rl-edge);
+    padding-left: 0;
+    padding-bottom: 1rem;
+    min-height: 0;
+  }
+  .rl-rung {
+    flex-direction: column-reverse;
+    gap: 0.4rem;
+    text-align: center;
+  }
+  .rl-rung::before {
+    left: 50%;
+    bottom: calc(-1rem - 7px);
+    transform: translateX(-50%);
+  }
+  .rl-rung-note {
+    display: none;
+  }
+  .rl-marker {
+    display: none;
+  }
+  .rl-steps,
+  .rl-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rl-marker {
+    animation: none;
+    bottom: 62%;
+    opacity: 1;
+  }
+  .rl-btn,
+  .rl-arrow {
+    transition: none;
+  }
+}

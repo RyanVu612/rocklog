@@ -2,15 +2,11 @@
 
 import { signIn } from "next-auth/react";
 
+import { btnPrimary } from "~/app/_components/ui";
+
 export function SignInButton({ className }: { className?: string }) {
   return (
-    <button
-      onClick={() => void signIn()}
-      className={
-        className ??
-        "rounded-md bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-700"
-      }
-    >
+    <button onClick={() => void signIn()} className={className ?? btnPrimary}>
       Sign in to start logging
     </button>
   );

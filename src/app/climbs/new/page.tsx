@@ -11,7 +11,9 @@ export default async function NewClimbPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">Log a climb</h1>
+      <h1 className="mb-4 font-display text-2xl uppercase tracking-tight text-ink">
+        Log a climb
+      </h1>
       <ClimbForm />
     </div>
   );

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { chipNeutral } from "~/app/_components/ui";
 import { SEND_TYPE_LABELS } from "~/lib/constants";
 import { formatGradeRange } from "~/lib/grades";
 
@@ -20,20 +21,22 @@ type Card = {
   user?: { name: string | null; image: string | null } | null;
 };
 
+// Send-type chips on the Rocklog palette: Flash = gold, Send = green,
+// Project = ember. Dark text (basalt) reads cleanly on every accent fill.
 const sendBadge: Record<Card["sendType"], string> = {
-  FLASH: "bg-amber-100 text-amber-800",
-  SEND: "bg-green-100 text-green-800",
-  PROJECT: "bg-sky-100 text-sky-800",
+  FLASH: "bg-gold text-basalt",
+  SEND: "bg-green text-basalt",
+  PROJECT: "bg-ember text-basalt",
 };
 
 export function ClimbCard({ climb }: { climb: Card }) {
   return (
     <Link
       href={`/climbs/${climb.id}`}
-      className="block rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
+      className="block rounded-lg border border-edge bg-panel p-4 transition hover:border-muted hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
     >
       <div className="flex gap-4">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-100 text-slate-400">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface text-muted">
           {climb.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -50,21 +53,17 @@ export function ClimbCard({ climb }: { climb: Card }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-lg font-semibold">
+            <span className="font-mono text-lg font-medium text-ink">
               {formatGradeRange(climb.gradeMin, climb.gradeMax)}
             </span>
             {climb.colorLabel && (
-              <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                {climb.colorLabel}
-              </span>
+              <span className={chipNeutral}>{climb.colorLabel}</span>
             )}
             {climb.ropeGrade && (
-              <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                {climb.ropeGrade}
-              </span>
+              <span className={chipNeutral}>{climb.ropeGrade}</span>
             )}
             <span
-              className={`rounded px-2 py-0.5 text-xs font-medium ${sendBadge[climb.sendType]}`}
+              className={`rounded px-2 py-0.5 font-mono text-xs uppercase tracking-wide ${sendBadge[climb.sendType]}`}
             >
               {SEND_TYPE_LABELS[climb.sendType]}
               {climb.sendType !== "FLASH" && climb.attemptCount > 1
@@ -72,20 +71,20 @@ export function ClimbCard({ climb }: { climb: Card }) {
                 : ""}
             </span>
             {climb.visibility === "PUBLIC" && (
-              <span className="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+              <span className="rounded bg-teal/20 px-2 py-0.5 text-xs font-medium text-teal">
                 Public
               </span>
             )}
           </div>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted">
             {climb.gym.name} ·{" "}
             {new Date(climb.climbedAt).toLocaleDateString()}
             {climb.user?.name ? ` · ${climb.user.name}` : ""}
           </p>
 
           {climb.comments && (
-            <p className="mt-1 line-clamp-2 text-sm text-slate-600">
+            <p className="mt-1 line-clamp-2 text-sm text-ink">
               {climb.comments}
             </p>
           )}
