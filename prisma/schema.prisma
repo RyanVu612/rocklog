@@ -1,0 +1,142 @@
+// Rocklog Prisma schema.
+// See specs/rocklog.md for the data model requirements.
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider  = "postgresql"
+    url       = env("DATABASE_URL")
+    // Used by Prisma Migrate for a direct (non-pooled) connection on Supabase.
+    directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Domain models
+// ---------------------------------------------------------------------------
+
+enum SendType {
+    FLASH // sent first try
+    SEND // a.k.a. redpoint — sent after attempts
+    PROJECT // attempted, not yet sent
+}
+
+enum GymStatus {
+    APPROVED
+    PENDING
+}
+
+enum Visibility {
+    PRIVATE
+    PUBLIC
+}
+
+model Gym {
+    id        String    @id @default(cuid())
+    name      String
+    // Case-insensitive uniqueness is enforced in app code; this keeps exact dupes out.
+    nameKey   String    @unique // lowercased name, used to dedupe approved+pending gyms
+    location  String?
+    status    GymStatus @default(PENDING)
+    // The single fallback gym that orphaned climbs are reassigned to. Always exactly one.
+    isUnknown Boolean   @default(false)
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    climbs Climb[]
+
+    @@index([status])
+}
+
+model Climb {
+    id     String @id @default(cuid())
+    userId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    gymId String
+    gym   Gym    @relation(fields: [gymId], references: [id])
+
+    // V-scale range. gradeMin/gradeMax are integer V values (0..17). A single
+    // grade has gradeMin == gradeMax. Validation (max >= min) is enforced in app code.
+    gradeMin Int
+    gradeMax Int
+
+    // Optional YDS rope grade, e.g. "5.10a". Null for bouldering-only entries.
+    ropeGrade String?
+
+    // Optional color label shown next to the grade, e.g. "Pink".
+    colorLabel String?
+
+    sendType     SendType
+    attemptCount Int      @default(1)
+
+    comments String?
+
+    // Supabase Storage object paths (within SUPABASE_MEDIA_BUCKET). Null when absent.
+    photoPath String?
+    videoPath String?
+
+    visibility Visibility @default(PRIVATE)
+
+    // When the climb happened. Defaults to now in the UI but is user-editable.
+    climbedAt DateTime @default(now())
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([userId])
+    @@index([gymId])
+    @@index([climbedAt])
+    @@index([sendType])
+}
+
+// ---------------------------------------------------------------------------
+// NextAuth (Auth.js) models
+// ---------------------------------------------------------------------------
+
+model Account {
+    id                       String  @id @default(cuid())
+    userId                   String
+    type                     String
+    provider                 String
+    providerAccountId        String
+    refresh_token            String? @db.Text
+    access_token             String? @db.Text
+    expires_at               Int?
+    token_type               String?
+    scope                    String?
+    id_token                 String? @db.Text
+    session_state            String?
+    refresh_token_expires_in Int?
+    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+    id            String    @id @default(cuid())
+    name          String?
+    email         String?   @unique
+    emailVerified DateTime?
+    image         String?
+    accounts      Account[]
+    sessions      Session[]
+    climbs        Climb[]
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
+}
